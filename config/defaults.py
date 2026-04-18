@@ -67,6 +67,8 @@ _C.MODEL.RE_ARRANGE = True
 _C.MODEL.SIE_COE = 3.0
 _C.MODEL.SIE_CAMERA = False
 _C.MODEL.SIE_VIEW = False
+# Camera number
+_C.MODEL.CAMERA_NUM = 0
 
 # -----------------------------------------------------------------------------
 # INPUT
