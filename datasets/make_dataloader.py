@@ -10,6 +10,7 @@ from .ballshow import BallShow
 
 __factory = {
     'ballshow': BallShow,
+    'BallShow-ReID': BallShow,
 }
 
 def train_collate_fn(batch):
