@@ -12,7 +12,25 @@ class BallShow(BaseImageDataset):
 
     def __init__(self, root='', verbose=True, pid_begin=0, **kwargs):
         super(BallShow, self).__init__()
-        self.dataset_dir = osp.join(root, self.dataset_dir)
+        # 自动检测数据集目录名称
+        if not hasattr(self, 'dataset_dir') or not self.dataset_dir:
+            # 查找root下的子目录
+            if osp.exists(root):
+                subdirs = [d for d in os.listdir(root) if osp.isdir(osp.join(root, d))]
+                if len(subdirs) == 1:
+                    self.dataset_dir = osp.join(root, subdirs[0])
+                else:
+                    # 尝试匹配BallShow相关的目录名
+                    for d in subdirs:
+                        if 'ball' in d.lower() or 'reid' in d.lower():
+                            self.dataset_dir = osp.join(root, d)
+                            break
+                    else:
+                        self.dataset_dir = osp.join(root, 'BallShow')
+            else:
+                self.dataset_dir = osp.join(root, 'BallShow')
+        else:
+            self.dataset_dir = osp.join(root, self.dataset_dir) if not osp.isabs(self.dataset_dir) else self.dataset_dir
         self.train_dir = osp.join(self.dataset_dir, 'bounding_box_train')
         self.query_dir = osp.join(self.dataset_dir, 'query')
         self.gallery_dir = osp.join(self.dataset_dir, 'bounding_box_test')
