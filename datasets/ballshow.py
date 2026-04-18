@@ -41,6 +41,10 @@ class BallShow(BaseImageDataset):
             self.query)
         self.num_gallery_pids, self.num_gallery_imgs, self.num_gallery_cams, self.num_gallery_vids = self.get_imagedata_info(
             self.gallery)
+        
+        # 添加总摄像头数和总视角数
+        self.num_total_cams = len(self.camid2label)
+        self.num_total_vids = 1
 
     def _check_before_run(self):
         """检查文件夹是否存在"""
@@ -54,42 +58,43 @@ class BallShow(BaseImageDataset):
             raise RuntimeError("'{}' is not available".format(self.gallery_dir))
 
     def _process_dir(self, dir_path, relabel=False):
-        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))  # 支持 .jpg
-        # 如果有 .png 图片，可以追加: img_paths += glob.glob(osp.join(dir_path, '*.png'))
+        img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
+        img_paths += glob.glob(osp.join(dir_path, '*.png'))  # 兼容png
+        pattern = re.compile(r'([-\d]+)_c(\d+)')  # 支持多位摄像头 c10, c100
 
-        # 正则表达式：匹配 "ID_cCamera_xxx" 格式
-        # ([-\d]+) 匹配 ID (可能是负数)
-        # c(\d) 匹配 摄像头编号
-        pattern = re.compile(r'([-\d]+)_c(\d)')
-
+        # 第一次遍历：收集所有 pid 和 camid
         pid_container = set()
-        for img_path in sorted(img_paths):
-            # 先遍历一遍获取所有 ID，用于 relabel
-            pid, _ = map(int, pattern.search(img_path).groups())
-            if pid == -1: continue
-            pid_container.add(pid)
+        camid_container = set()
 
-        # 建立 ID 到 0~N 的映射
+        for img_path in sorted(img_paths):
+            pid, camid = map(int, pattern.search(img_path).groups())
+            if pid == -1:
+                continue
+            pid_container.add(pid)
+            camid_container.add(camid)
+
+        # 建立映射：让 camid 从 0 开始连续（关键！）
+        cam2label = {cam: idx for idx, cam in enumerate(sorted(camid_container))}
         pid2label = {pid: label for label, pid in enumerate(pid_container)}
+        
+        # 保存 cam2label 为类属性，以便后续使用
+        if not hasattr(self, 'camid2label'):
+            self.camid2label = cam2label
 
         dataset = []
         for img_path in sorted(img_paths):
             pid, camid = map(int, pattern.search(img_path).groups())
+            if pid == -1:
+                continue
 
-            if pid == -1: continue  # 过滤垃圾图片
-
-            # 摄像头编号通常从1开始，这里减1变成从0开始
-            camid -= 1
+            # 映射成连续的 camera id
+            camid = cam2label[camid]
 
             if relabel:
                 pid = pid2label[pid]
-
-            # 如果是测试集，不进行 relabel，直接用原始 PID (需加上偏移量 pid_begin)
             else:
                 pid = self.pid_begin + pid
 
-            # dataset 格式: (图片路径, ID, 摄像头ID, TrackID)
-            # TrackID 暂时不用，固定为 1
             dataset.append((img_path, pid, camid, 1))
 
         return dataset

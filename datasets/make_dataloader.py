@@ -53,8 +53,8 @@ def make_dataloader(cfg):
     train_set = ImageDataset(dataset.train, train_transforms)
     train_set_normal = ImageDataset(dataset.train, val_transforms)
     num_classes = dataset.num_train_pids
-    cam_num = dataset.num_train_cams
-    view_num = dataset.num_train_vids
+    cam_num = getattr(dataset, 'num_total_cams', dataset.num_train_cams)
+    view_num = getattr(dataset, 'num_total_vids', dataset.num_train_vids)
 
     if 'triplet' in cfg.DATALOADER.SAMPLER:
         if cfg.MODEL.DIST_TRAIN:
