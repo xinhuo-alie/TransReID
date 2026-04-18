@@ -379,12 +379,23 @@ class TransReID(nn.Module):
         cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
         x = torch.cat((cls_tokens, x), dim=1)
 
-        if self.cam_num > 0 and self.view_num > 0:
-            x = x + self.pos_embed + self.sie_xishu * self.sie_embed[camera_id * self.view_num + view_id]
-        elif self.cam_num > 0:
-            x = x + self.pos_embed + self.sie_xishu * self.sie_embed[camera_id]
-        elif self.view_num > 0:
-            x = x + self.pos_embed + self.sie_xishu * self.sie_embed[view_id]
+        # 只有当camera > 1或view > 1时才使用SIE模块
+        if (self.cam_num > 1 or self.view_num > 1) and hasattr(self, 'sie_embed'):
+            if self.cam_num > 1 and self.view_num > 1:
+                # 确保索引在有效范围内
+                index = camera_id * self.view_num + view_id
+                index = torch.clamp(index, 0, self.sie_embed.size(0) - 1)
+                x = x + self.pos_embed + self.sie_xishu * self.sie_embed[index]
+            elif self.cam_num > 1:
+                # 确保索引在有效范围内
+                camera_id = torch.clamp(camera_id, 0, self.sie_embed.size(0) - 1)
+                x = x + self.pos_embed + self.sie_xishu * self.sie_embed[camera_id]
+            elif self.view_num > 1:
+                # 确保索引在有效范围内
+                view_id = torch.clamp(view_id, 0, self.sie_embed.size(0) - 1)
+                x = x + self.pos_embed + self.sie_xishu * self.sie_embed[view_id]
+            else:
+                x = x + self.pos_embed
         else:
             x = x + self.pos_embed
 

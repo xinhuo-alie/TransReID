@@ -20,6 +20,23 @@ class BallShow(BaseImageDataset):
         self._check_before_run()
         self.pid_begin = pid_begin
 
+        # 首先收集所有目录中的摄像头ID
+        all_camids = set()
+        for dir_path in [self.train_dir, self.query_dir, self.gallery_dir]:
+            img_paths = glob.glob(osp.join(dir_path, '*.jpg'))
+            img_paths += glob.glob(osp.join(dir_path, '*.png'))
+            pattern = re.compile(r'([-\d]+)_c(\d+)')
+            for img_path in img_paths:
+                try:
+                    pid, camid = map(int, pattern.search(img_path).groups())
+                    if pid != -1:
+                        all_camids.add(camid)
+                except:
+                    pass
+        
+        # 建立完整的摄像头ID映射
+        self.camid2label = {cam: idx for idx, cam in enumerate(sorted(all_camids))}
+
         # 处理文件夹
         # relabel=True 表示训练集会将 ID 重新映射为 0, 1, 2...
         train = self._process_dir(self.train_dir, relabel=True)
@@ -62,24 +79,16 @@ class BallShow(BaseImageDataset):
         img_paths += glob.glob(osp.join(dir_path, '*.png'))  # 兼容png
         pattern = re.compile(r'([-\d]+)_c(\d+)')  # 支持多位摄像头 c10, c100
 
-        # 第一次遍历：收集所有 pid 和 camid
+        # 收集所有 pid
         pid_container = set()
-        camid_container = set()
-
         for img_path in sorted(img_paths):
             pid, camid = map(int, pattern.search(img_path).groups())
             if pid == -1:
                 continue
             pid_container.add(pid)
-            camid_container.add(camid)
 
-        # 建立映射：让 camid 从 0 开始连续（关键！）
-        cam2label = {cam: idx for idx, cam in enumerate(sorted(camid_container))}
+        # 建立 pid 映射
         pid2label = {pid: label for label, pid in enumerate(pid_container)}
-        
-        # 保存 cam2label 为类属性，以便后续使用
-        if not hasattr(self, 'camid2label'):
-            self.camid2label = cam2label
 
         dataset = []
         for img_path in sorted(img_paths):
@@ -88,7 +97,7 @@ class BallShow(BaseImageDataset):
                 continue
 
             # 映射成连续的 camera id
-            camid = cam2label[camid]
+            camid = self.camid2label[camid]
 
             if relabel:
                 pid = pid2label[pid]
