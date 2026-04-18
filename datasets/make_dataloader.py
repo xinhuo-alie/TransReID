@@ -9,8 +9,8 @@ from .sampler_ddp import RandomIdentitySampler_DDP
 from .ballshow import BallShow
 
 __factory = {
-    'ballshow': BallShow,
-    'BallShow-ReID': BallShow,
+    'ballshow': BallShow-ReID,
+    'BallShow-ReID': BallShow-ReID,
 }
 
 def train_collate_fn(batch):
