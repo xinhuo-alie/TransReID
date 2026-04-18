@@ -10,7 +10,6 @@ MODEL:
   TRANSFORMER_TYPE: 'vit_base_patch16_224_TransReID'
   STRIDE_SIZE: [12, 12]
   SIE_CAMERA: True
-  CAMERA_NUM: 10000
   SIE_COE: 3.0
   JPM: True
   RE_ARRANGE: True
@@ -26,7 +25,7 @@ INPUT:
 
 DATASETS:
   NAMES: ('ballshow')
-  ROOT_DIR: ('./data/BallShow')
+  ROOT_DIR: ('./data/BallShow-ReID')
 
 DATALOADER:
   SAMPLER: 'softmax_triplet'
